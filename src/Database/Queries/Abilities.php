@@ -67,8 +67,8 @@ class Abilities
      * @return \Closure
      */
     protected function addRoleInheritCondition(Builder $query, Model $authority, $roles) {
-        $query->orWhere('level', '<', function ($query) use ($authority, $roles) {
-            $query->selectRaw('max(level)')
+        $query->orWhere('level_roles', '<', function ($query) use ($authority, $roles) {
+            $query->selectRaw('max(level_roles)')
                   ->from($roles)
                   ->whereExists($this->getAuthorityRoleConstraint($authority));
 

@@ -37,8 +37,8 @@ class RoleLevelsTest extends BaseTestCase
     {
         $bouncer = $this->bouncer($user = User::create());
 
-        $admin = Role::create(['name' => 'admin', 'level' => $grantedLevel]);
-        $editor = Role::create(['name' => 'editor', 'level' => $otherLevel]);
+        $admin = Role::create(['name' => 'admin', 'level_roles' => $grantedLevel]);
+        $editor = Role::create(['name' => 'editor', 'level_roles' => $otherLevel]);
 
         $bouncer->allow($editor)->to('edit-site');
         $bouncer->assign($admin)->to($user);
