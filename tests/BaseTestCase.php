@@ -3,9 +3,9 @@
 require __DIR__.'/../migrations/create_bouncer_tables.php';
 
 use Silber\Bouncer\Bouncer;
-use Silber\Bouncer\Seed\Seeder;
 use Silber\Bouncer\CachedClipboard;
 use Silber\Bouncer\Database\Models;
+use Silber\Bouncer\Contracts\Clipboard;
 use Silber\Bouncer\Database\HasRolesAndAbilities;
 
 use PHPUnit\Framework\TestCase;
@@ -48,9 +48,19 @@ abstract class BaseTestCase extends TestCase
     {
         Models::setUsersModel(User::class);
 
-        $this->clipboard = new CachedClipboard(new ArrayStore);
+        $this->setContainerInstance();
+
+        Container::getInstance()->instance(
+            Clipboard::class,
+            $this->clipboard = new CachedClipboard(new ArrayStore)
+        );
 
         $this->migrate();
+    }
+
+    protected function setContainerInstance()
+    {
+        Container::setInstance(new Container);
     }
 
     protected function migrate()
@@ -119,7 +129,7 @@ abstract class BaseTestCase extends TestCase
      */
     protected function gate(Eloquent $authority)
     {
-        $gate = new Gate(new Container, function () use ($authority) {
+        $gate = new Gate(Container::getInstance(), function () use ($authority) {
             return $authority;
         });
 

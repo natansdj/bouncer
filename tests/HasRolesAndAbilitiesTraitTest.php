@@ -130,16 +130,18 @@ class HasRolesAndAbilitiesTraitTest extends BaseTestCase
         $bouncer->allow('admin')->to('edit-site');
         $user->assign('admin');
 
+        $this->assertEquals(['admin'], $user->getRoles()->all());
         $this->assertTrue($bouncer->can('edit-site'));
 
         $user->retract('admin');
 
+        $this->assertEquals([], $user->getRoles()->all());
         $this->assertTrue($bouncer->cannot('edit-site'));
     }
 
     public function test_can_check_roles()
     {
-        $gate = $this->gate($user = User::create());
+        $this->bouncer($user = User::create())->dontCache();
 
         $this->assertTrue($user->isNotAn('admin'));
         $this->assertFalse($user->isAn('admin'));
@@ -157,7 +159,7 @@ class HasRolesAndAbilitiesTraitTest extends BaseTestCase
 
     public function test_can_check_multiple_roles()
     {
-        $gate = $this->gate($user = User::create());
+        $this->bouncer($user = User::create())->dontCache();
 
         $this->assertFalse($user->isAn('admin', 'editor'));
 

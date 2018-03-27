@@ -24,6 +24,7 @@ Bouncer is an elegant, framework-agnostic approach to managing roles and abiliti
   - [Forbidding an ability](#forbidding-an-ability)
   - [Unforbidding an ability](#unforbidding-an-ability)
   - [Checking a user's roles](#checking-a-users-roles)
+  - [Getting all roles for a user](#getting-all-roles-for-a-user)
   - [Getting all abilities for a user](#getting-all-abilities-for-a-user)
   - [Authorizing users](#authorizing-users)
   - [Blade directives](#blade-directives)
@@ -153,7 +154,11 @@ For more information about Laravel Facades, refer to [the Laravel documentation]
 
     Refer to [the Eloquent Capsule documentation](https://github.com/illuminate/database/blob/master/README.md) for more details.
 
-3) Run the migrations. You'll find the necessary migrations in [the migrations stub file](https://github.com/JosephSilber/bouncer/blob/master/migrations/create_bouncer_tables.php#L17-L73) in Bouncer's source code.
+3) Run the migrations by either of the following methods:
+
+    - Use a tool such as [vagabond](https://github.com/michaeldyrynda/vagabond) to run Laravel migrations outside of a Laravel app. You'll find the necessary migrations in [the migrations stub file](https://github.com/JosephSilber/bouncer/blob/master/migrations/create_bouncer_tables.php#L17-L73).
+
+    - Alternatively, you can run [the raw SQL](https://github.com/JosephSilber/bouncer/blob/master/migrations/sql/MySQL.sql) directly in your database.
 
 4) Add Bouncer's trait to your user model:
 
@@ -480,6 +485,14 @@ $user->isNotA('subscriber');
 $user->isAll('editor', 'moderator');
 ```
 
+### Getting all roles for a user
+
+You can get all roles for a user directly from the user model:
+
+```php
+$roles = $user->getRoles();
+```
+
 ### Getting all abilities for a user
 
 You can get all abilities for a user directly from the user model:
@@ -494,11 +507,12 @@ This will return a collection of the user's abilities, including any abilities g
 
 Authorizing users is handled directly at [Laravel's `Gate`](https://laravel.com/docs/5.5/authorization#gates), or on the user model (`$user->can($ability)`).
 
-For convenience, the bouncer class provides two passthrough methods:
+For convenience, the bouncer class provides these passthrough methods:
 
 ```php
 Bouncer::can($ability);
 Bouncer::cannot($ability);
+Bouncer::authorize($ability);
 ```
 
 These call directly into the `Gate` class.

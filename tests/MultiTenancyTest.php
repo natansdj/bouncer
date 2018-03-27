@@ -39,6 +39,60 @@ class MultiTenancyTest extends BaseTestCase
         $this->assertEquals(1, $this->db()->table('assigned_roles')->value('scope'));
     }
 
+    public function test_syncing_roles_is_properly_scoped()
+    {
+        $bouncer = $this->bouncer($user = User::create())->dontCache();
+
+        $bouncer->scope()->to(1);
+        $bouncer->assign(['writer', 'reader'])->to($user);
+
+        $bouncer->scope()->to(2);
+        $bouncer->assign(['eraser', 'thinker'])->to($user);
+
+        $bouncer->scope()->to(1);
+        $bouncer->sync($user)->roles(['writer']);
+
+        $this->assertTrue($bouncer->is($user)->a('writer'));
+        $this->assertEquals(1, $user->roles()->count());
+
+        $bouncer->scope()->to(2);
+        $this->assertTrue($bouncer->is($user)->all('eraser', 'thinker'));
+        $this->assertFalse($bouncer->is($user)->a('writer', 'reader'));
+
+        $bouncer->sync($user)->roles(['thinker']);
+
+        $this->assertTrue($bouncer->is($user)->a('thinker'));
+        $this->assertEquals(1, $user->roles()->count());
+    }
+
+    public function test_syncing_abilities_is_properly_scoped()
+    {
+        $bouncer = $this->bouncer($user = User::create())->dontCache();
+
+        $bouncer->scope()->to(1);
+        $bouncer->allow($user)->to(['write', 'read']);
+
+        $bouncer->scope()->to(2);
+        $bouncer->allow($user)->to(['erase', 'think']);
+
+        $bouncer->scope()->to(1);
+        $bouncer->sync($user)->abilities(['write', 'color']); // "read" is not deleted
+
+        $this->assertTrue($bouncer->can('write'));
+        $this->assertEquals(2, $user->abilities()->count());
+
+        $bouncer->scope()->to(2);
+        $this->assertTrue($bouncer->can('erase'));
+        $this->assertTrue($bouncer->can('think'));
+        $this->assertFalse($bouncer->can('write'));
+        $this->assertFalse($bouncer->can('read'));
+
+        $bouncer->sync($user)->abilities(['think']);
+
+        $this->assertTrue($bouncer->can('think'));
+        $this->assertEquals(1, $user->abilities()->count());
+    }
+
     public function test_relation_queries_are_properly_scoped()
     {
         $bouncer = $this->bouncer($user = User::create());
