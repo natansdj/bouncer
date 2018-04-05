@@ -6,7 +6,6 @@ use Silber\Bouncer\Database\Models;
 
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Silber\Bouncer\Helpers;
 
 class Abilities
 {
@@ -52,8 +51,8 @@ class Abilities
             $query->where(function ($query) use ($roles, $authority, $allowed) {
                 $query->whereExists($this->getAuthorityRoleConstraint($authority));
 
-                if ($allowed && Helpers::enableInherit()) {
-                    $this->addRoleInheritCondition($query, $authority, $roles);
+                if ($allowed) {
+//                    $this->addRoleInheritCondition($query, $authority, $roles);
                 }
             });
         };

@@ -224,4 +224,17 @@ class BouncerServiceProvider extends ServiceProvider
     {
         return php_sapi_name() == 'cli' || php_sapi_name() == 'phpdbg';
     }
+
+    protected function setInherit()
+    {
+        $inherit = $this->getConfigInherit();
+        Models::setInherit($inherit);
+    }
+
+    public function getConfigInherit()
+    {
+        $config = $this->app->config['app'];
+
+        return array_get($config, 'bouncer_inherit', false);
+    }
 }
