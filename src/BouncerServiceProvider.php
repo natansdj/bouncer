@@ -37,6 +37,7 @@ class BouncerServiceProvider extends ServiceProvider
         $this->registerMorphs();
         $this->setTablePrefix();
         $this->setUserModel();
+        $this->setInherit();
 
         if ($this->runningInConsole()) {
             $this->publishMiddleware();
@@ -223,5 +224,18 @@ class BouncerServiceProvider extends ServiceProvider
     protected function runningInConsole()
     {
         return php_sapi_name() == 'cli' || php_sapi_name() == 'phpdbg';
+    }
+
+    protected function setInherit()
+    {
+        $inherit = $this->getConfigInherit();
+        Models::setInherit($inherit);
+    }
+
+    public function getConfigInherit()
+    {
+        $config = $this->app->config['app'];
+
+        return array_get($config, 'bouncer_inherit', false);
     }
 }
