@@ -52,7 +52,7 @@ class Abilities
                 $query->whereExists($this->getAuthorityRoleConstraint($authority));
 
                 if ($allowed) {
-                    $this->addRoleInheritCondition($query, $authority, $roles);
+//                    $this->addRoleInheritCondition($query, $authority, $roles);
                 }
             });
         };
