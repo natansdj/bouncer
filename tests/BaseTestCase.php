@@ -1,18 +1,24 @@
 <?php
 
+namespace Silber\Bouncer\Tests;
+
 require __DIR__.'/../migrations/create_bouncer_tables.php';
 
+use CreateBouncerTables;
+use Silber\Bouncer\Guard;
 use Silber\Bouncer\Bouncer;
-use Silber\Bouncer\CachedClipboard;
+use Silber\Bouncer\Clipboard;
 use Silber\Bouncer\Database\Models;
-use Silber\Bouncer\Contracts\Clipboard;
 use Silber\Bouncer\Database\HasRolesAndAbilities;
+use Silber\Bouncer\Database\Concerns\Authorizable;
+use Silber\Bouncer\Contracts\Clipboard as ClipboardContract;
 
 use PHPUnit\Framework\TestCase;
 use Illuminate\Auth\Access\Gate;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Events\Dispatcher;
 use Illuminate\Container\Container;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Capsule\Manager as DB;
 use Illuminate\Database\Eloquent\Model as Eloquent;
 
@@ -21,7 +27,7 @@ abstract class BaseTestCase extends TestCase
     /**
      * The clipboard instance.
      *
-     * @var \Silber\Bouncer\CachedClipboard
+     * @var \Silber\Bouncer\Contracts\Clipboard
      */
     protected $clipboard;
 
@@ -40,27 +46,41 @@ abstract class BaseTestCase extends TestCase
     protected static $dispatcher;
 
     /**
-     * Setup the database schema.
+     * Setup the world for the tests.
      *
      * @return void
      */
     public function setUp()
     {
-        Models::setUsersModel(User::class);
+        Container::setInstance(new Container);
 
-        $this->setContainerInstance();
-
-        Container::getInstance()->instance(
-            Clipboard::class,
-            $this->clipboard = new CachedClipboard(new ArrayStore)
-        );
+        $this->registerDatabaseContainerBindings();
 
         $this->migrate();
+
+        Models::setUsersModel(User::class);
+
+        $this->registerClipboard();
     }
 
-    protected function setContainerInstance()
+    protected function registerClipboard()
     {
-        Container::setInstance(new Container);
+        $this->clipboard = new Clipboard;
+
+        Container::getInstance()->bind(ClipboardContract::class, function () {
+            return $this->clipboard;
+        });
+    }
+
+    protected function registerDatabaseContainerBindings()
+    {
+        $container = Container::getInstance();
+
+        Schema::setFacadeApplication($container);
+
+        $container->bind('db', function () {
+            return $this->db();
+        });
     }
 
     protected function migrate()
@@ -77,6 +97,7 @@ abstract class BaseTestCase extends TestCase
         Schema::create('users', function ($table) {
             $table->increments('id');
             $table->string('name')->nullable();
+            $table->integer('age')->nullable();
             $table->timestamps();
         });
 
@@ -84,6 +105,7 @@ abstract class BaseTestCase extends TestCase
             $table->increments('id');
             $table->integer('user_id')->unsigned()->nullable();
             $table->string('name')->nullable();
+            $table->boolean('active')->default(true);
             $table->timestamps();
         });
     }
@@ -116,9 +138,11 @@ abstract class BaseTestCase extends TestCase
      */
     protected function bouncer(Eloquent $authority = null)
     {
-        $bouncer = new Bouncer($this->clipboard);
+        $gate = $this->gate($authority ?: User::create());
 
-        return $bouncer->setGate($this->gate($authority ?: User::create()));
+        $bouncer = new Bouncer((new Guard($this->clipboard))->registerAt($gate));
+
+        return $bouncer->setGate($gate);
     }
 
     /**
@@ -129,13 +153,9 @@ abstract class BaseTestCase extends TestCase
      */
     protected function gate(Eloquent $authority)
     {
-        $gate = new Gate(Container::getInstance(), function () use ($authority) {
+        return new Gate(Container::getInstance(), function () use ($authority) {
             return $authority;
         });
-
-        $this->clipboard->registerAt($gate);
-
-        return $gate;
     }
 
     /**
@@ -182,7 +202,9 @@ abstract class BaseTestCase extends TestCase
 
 class User extends Eloquent
 {
-    use HasRolesAndAbilities;
+    use Authorizable, HasRolesAndAbilities {
+        Authorizable::getClipboardInstance insteadof HasRolesAndAbilities;
+    }
 
     protected $table = 'users';
 
@@ -196,14 +218,4 @@ class Account extends Eloquent
     protected $table = 'accounts';
 
     protected $guarded = [];
-}
-
-class Schema
-{
-    public static function __callStatic($method, array $parameters)
-    {
-        $schema = DB::connection()->getSchemaBuilder();
-
-        return call_user_func_array([$schema, $method], $parameters);
-    }
 }

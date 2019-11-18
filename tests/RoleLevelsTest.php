@@ -1,41 +1,61 @@
 <?php
 
+namespace Silber\Bouncer\Tests;
+
 use Silber\Bouncer\Database\Role;
 use Silber\Bouncer\Database\Ability;
 
 class RoleLevelsTest extends BaseTestCase
 {
-    public function test_a_role_is_allowed_abilities_from_a_lower_level()
+    use Concerns\TestsClipboards;
+
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function a_role_is_allowed_abilities_from_a_lower_level($provider)
     {
-        $bouncer = $this->prepareLevelsTest(2, 1);
+        $bouncer = $this->prepareLevelsTest($provider, 2, 1);
 
         $this->assertTrue($bouncer->can('edit-site'));
     }
 
-    public function test_a_role_is_not_allowed_abilities_from_the_same_level()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function a_role_is_not_allowed_abilities_from_the_same_level($provider)
     {
-        $bouncer = $this->prepareLevelsTest(2, 2);
+        $bouncer = $this->prepareLevelsTest($provider, 2, 2);
 
         $this->assertFalse($bouncer->can('edit-site'));
     }
 
-    public function test_a_role_is_not_allowed_abilities_from_another_role_with_no_level()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function a_role_is_not_allowed_abilities_from_another_role_with_no_level($provider)
     {
-        $bouncer = $this->prepareLevelsTest(2, null);
+        $bouncer = $this->prepareLevelsTest($provider, 2, null);
 
         $this->assertFalse($bouncer->can('edit-site'));
     }
 
-    public function test_a_role_with_no_level_is_not_allowed_abilities_from_another_level()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function a_role_with_no_level_is_not_allowed_abilities_from_another_level($provider)
     {
-        $bouncer = $this->prepareLevelsTest(null, 1);
+        $bouncer = $this->prepareLevelsTest($provider, null, 1);
 
         $this->assertFalse($bouncer->can('edit-site'));
     }
 
-    protected function prepareLevelsTest($grantedLevel, $otherLevel)
+    protected function prepareLevelsTest($provider, $grantedLevel, $otherLevel)
     {
-        $bouncer = $this->bouncer($user = User::create());
+        list($bouncer, $user) = $provider();
 
         $admin = Role::create(['name' => 'admin', 'level_roles' => $grantedLevel]);
         $editor = Role::create(['name' => 'editor', 'level_roles' => $otherLevel]);

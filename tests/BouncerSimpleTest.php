@@ -1,13 +1,22 @@
 <?php
 
+namespace Silber\Bouncer\Tests;
+
+use Exception;
 use Silber\Bouncer\Database\Role;
 use Silber\Bouncer\Database\Ability;
 
 class BouncerSimpleTest extends BaseTestCase
 {
-    public function test_bouncer_can_give_and_remove_abilities()
+    use Concerns\TestsClipboards;
+
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_give_and_remove_abilities($provider)
     {
-        $bouncer = $this->bouncer($user = User::create())->dontCache();
+        list($bouncer, $user) = $provider();
 
         $editSite = Ability::create(['name' => 'edit-site']);
         $banUsers = Ability::create(['name' => 'ban-users']);
@@ -29,9 +38,42 @@ class BouncerSimpleTest extends BaseTestCase
         $this->assertTrue($bouncer->cannot('access-dashboard'));
     }
 
-    public function test_bouncer_can_give_and_remove_wildcard_abilities()
+
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_give_and_remove_abilities_for_everyone($provider)
     {
-        $bouncer = $this->bouncer($user = User::create())->dontCache();
+        list($bouncer, $user) = $provider();
+
+        $editSite = Ability::create(['name' => 'edit-site']);
+        $banUsers = Ability::create(['name' => 'ban-users']);
+        $accessDashboard = Ability::create(['name' => 'access-dashboard']);
+
+        $bouncer->allowEveryone()->to('edit-site');
+        $bouncer->allowEveryone()->to([$banUsers, $accessDashboard->id]);
+
+        $this->assertTrue($bouncer->can('edit-site'));
+        $this->assertTrue($bouncer->can('ban-users'));
+        $this->assertTrue($bouncer->can('access-dashboard'));
+
+        $bouncer->disallowEveryone()->to($editSite);
+        $bouncer->disallowEveryone()->to('ban-users');
+        $bouncer->disallowEveryone()->to($accessDashboard->id);
+
+        $this->assertTrue($bouncer->cannot('edit-site'));
+        $this->assertTrue($bouncer->cannot('ban-users'));
+        $this->assertTrue($bouncer->cannot('access-dashboard'));
+    }
+
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_give_and_remove_wildcard_abilities($provider)
+    {
+        list($bouncer, $user) = $provider();
 
         $bouncer->allow($user)->to('*');
 
@@ -44,12 +86,13 @@ class BouncerSimpleTest extends BaseTestCase
         $this->assertTrue($bouncer->cannot('edit-site'));
     }
 
-    public function test_bouncer_can_ignore_duplicate_ability_allowances()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_ignore_duplicate_ability_allowances($provider)
     {
-        $user1 = User::create();
-        $user2 = User::create();
-
-        $bouncer = $this->bouncer($user1);
+        list($bouncer, $user1, $user2) = $provider(2);
 
         $bouncer->allow($user1)->to('ban-users');
         $bouncer->allow($user1)->to('ban-users');
@@ -71,9 +114,13 @@ class BouncerSimpleTest extends BaseTestCase
         $this->assertCount(2, $admin->abilities);
     }
 
-    public function test_bouncer_can_give_and_remove_roles()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_give_and_remove_roles($provider)
     {
-        $bouncer = $this->bouncer($user = User::create())->dontCache();
+        list($bouncer, $user) = $provider();
 
         $bouncer->allow('admin')->to('ban-users');
         $bouncer->assign('admin')->to($user);
@@ -90,9 +137,33 @@ class BouncerSimpleTest extends BaseTestCase
         $this->assertTrue($bouncer->cannot('ban-users'));
     }
 
-    public function test_bouncer_can_give_and_remove_multiple_roles_at_once()
+    /**
+     * @test
+     */
+    function deleting_a_role_deletes_the_pivot_table_records()
     {
-        $bouncer = $this->bouncer($user = User::create())->dontCache();
+        $bouncer = $this->bouncer();
+
+        $admin = $bouncer->role()->create(['name' => 'admin']);
+        $editor = $bouncer->role()->create(['name' => 'editor']);
+
+        $bouncer->allow($admin)->everything();
+        $bouncer->allow($editor)->to('edit', User::class);
+
+        $this->assertEquals(2, $this->db()->table('permissions')->count());
+
+        $admin->delete();
+
+        $this->assertEquals(1, $this->db()->table('permissions')->count());
+    }
+
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_give_and_remove_multiple_roles_at_once($provider)
+    {
+        list($bouncer, $user) = $provider();
 
         $admin    = $this->role('admin');
         $editor   = $this->role('editor');
@@ -107,11 +178,13 @@ class BouncerSimpleTest extends BaseTestCase
         $this->assertTrue($bouncer->is($user)->notAn($admin, 'editor'));
     }
 
-    public function test_bouncer_can_give_and_remove_roles_for_multiple_users_at_once()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_give_and_remove_roles_for_multiple_users_at_once($provider)
     {
-        $user1 = User::create();
-        $user2 = User::create();
-        $bouncer = $this->bouncer($user1)->dontCache();
+        list($bouncer, $user1, $user2) = $provider(2);
 
         $bouncer->assign(['admin', 'editor'])->to([$user1, $user2]);
 
@@ -126,7 +199,10 @@ class BouncerSimpleTest extends BaseTestCase
         $this->assertTrue($bouncer->is($user1)->an('admin', 'editor'));
     }
 
-    public function test_bouncer_can_ignore_duplicate_role_assignments()
+    /**
+     * @test
+     */
+    function can_ignore_duplicate_role_assignments()
     {
         $bouncer = $this->bouncer($user = User::create());
 
@@ -136,9 +212,13 @@ class BouncerSimpleTest extends BaseTestCase
         $this->assertCount(1, $user->roles);
     }
 
-    public function test_bouncer_can_disallow_abilities_on_roles()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_disallow_abilities_on_roles($provider)
     {
-        $bouncer = $this->bouncer($user = User::create());
+        list($bouncer, $user) = $provider();
 
         $bouncer->allow('admin')->to('edit-site');
         $bouncer->disallow('admin')->to('edit-site');
@@ -147,9 +227,31 @@ class BouncerSimpleTest extends BaseTestCase
         $this->assertTrue($bouncer->cannot('edit-site'));
     }
 
-    public function test_bouncer_can_check_user_roles()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function disallow_on_roles_does_not_disallow_for_users_with_matching_id($provider)
     {
-        $bouncer = $this->bouncer($user = User::create());
+        list($bouncer, $user) = $provider();
+
+        // Since the user is the first user created, its ID is 1.
+        // Creating admin as the first role, it'll have its ID
+        // set to 1. Let's test that they're kept separate.
+        $bouncer->allow($user)->to('edit-site');
+        $bouncer->allow('admin')->to('edit-site');
+        $bouncer->disallow('admin')->to('edit-site');
+
+        $this->assertTrue($bouncer->can('edit-site'));
+    }
+
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_check_user_roles($provider)
+    {
+        list($bouncer, $user) = $provider();
 
         $this->assertTrue($bouncer->is($user)->notA('moderator'));
         $this->assertTrue($bouncer->is($user)->notAn('editor'));
@@ -166,9 +268,13 @@ class BouncerSimpleTest extends BaseTestCase
         $this->assertFalse($bouncer->is($user)->an('admin'));
     }
 
-    public function test_bouncer_can_check_multiple_user_roles()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_check_multiple_user_roles($provider)
     {
-        $bouncer = $this->bouncer($user = User::create());
+        list($bouncer, $user) = $provider();
 
         $this->assertTrue($bouncer->is($user)->notAn('editor', 'moderator'));
         $this->assertTrue($bouncer->is($user)->notAn('admin', 'moderator'));
@@ -184,14 +290,20 @@ class BouncerSimpleTest extends BaseTestCase
         $this->assertFalse($bouncer->is($user)->all('admin', 'moderator'));
     }
 
-    public function test_bouncer_can_get_an_empty_role_model()
+    /**
+     * @test
+     */
+    function can_get_an_empty_role_model()
     {
         $bouncer = $this->bouncer($user = User::create());
 
         $this->assertInstanceOf(Role::class, $bouncer->role());
     }
 
-    public function test_bouncer_can_fill_a_role_model()
+    /**
+     * @test
+     */
+    function can_fill_a_role_model()
     {
         $bouncer = $this->bouncer($user = User::create());
         $role = $bouncer->role(['name' => 'test-role']);
@@ -200,14 +312,20 @@ class BouncerSimpleTest extends BaseTestCase
         $this->assertEquals('test-role', $role->name);
     }
 
-    public function test_bouncer_can_get_an_empty_ability_model()
+    /**
+     * @test
+     */
+    function can_get_an_empty_ability_model()
     {
         $bouncer = $this->bouncer($user = User::create());
 
         $this->assertInstanceOf(Ability::class, $bouncer->ability());
     }
 
-    public function test_bouncer_can_fill_an_ability_model()
+    /**
+     * @test
+     */
+    function can_fill_an_ability_model()
     {
         $bouncer = $this->bouncer($user = User::create());
         $ability = $bouncer->ability(['name' => 'test-ability']);
@@ -216,9 +334,13 @@ class BouncerSimpleTest extends BaseTestCase
         $this->assertEquals('test-ability', $ability->name);
     }
 
-    public function test_bouncer_can_allow_abilities_from_a_defined_callback()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_allow_abilities_from_a_defined_callback($provider)
     {
-        $bouncer = $this->bouncer($user = User::create());
+        list($bouncer, $user) = $provider();
 
         $bouncer->define('edit', function ($user, $account) {
             if ( ! $account instanceof Account) {
@@ -232,9 +354,13 @@ class BouncerSimpleTest extends BaseTestCase
         $this->assertFalse($bouncer->can('edit', new Account(['user_id' => 99])));
     }
 
-    public function test_bouncer_authorize_returns_response_with_correct_message()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function authorize_method_returns_response_with_correct_message($provider)
     {
-        $bouncer = $this->bouncer($user = User::create());
+        list($bouncer, $user) = $provider();
 
         $bouncer->allow($user)->to('have-fun');
         $bouncer->allow($user)->to('enjoy-life');
@@ -250,9 +376,13 @@ class BouncerSimpleTest extends BaseTestCase
         );
     }
 
-    public function test_bouncer_authorize_throws_for_unauthorized_abilities()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function authorize_method_throws_for_unauthorized_abilities($provider)
     {
-        $bouncer = $this->bouncer();
+        list($bouncer) = $provider();
 
         // The exception class thrown from the "authorize" method
         // has changed between different versions of Laravel,

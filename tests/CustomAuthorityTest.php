@@ -1,26 +1,20 @@
 <?php
 
+namespace Silber\Bouncer\Tests;
+
 use Silber\Bouncer\Database\HasRolesAndAbilities;
 
 class CustomAuthorityTest extends BaseTestCase
 {
-    protected function migratedTestTables()
-    {
-        Schema::create('accounts', function ($table) {
-            $table->increments('id');
-            $table->string('name')->nullable();
-            $table->timestamps();
-        });
-    }
+    use Concerns\TestsClipboards;
 
-    protected function rollbackTestTables()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_give_and_remove_abilities($provider)
     {
-        Schema::drop('accounts');
-    }
-
-    public function test_bouncer_can_give_and_remove_abilities()
-    {
-        $bouncer = $this->bouncer($account = Account::create())->dontCache();
+        list($bouncer, $account) = $provider(1, Account::class);
 
         $bouncer->allow($account)->to('edit-site');
 
@@ -31,9 +25,13 @@ class CustomAuthorityTest extends BaseTestCase
         $this->assertTrue($bouncer->cannot('edit-site'));
     }
 
-    public function test_bouncer_can_give_and_remove_roles()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_give_and_remove_roles($provider)
     {
-        $bouncer = $this->bouncer($account = Account::create())->dontCache();
+        list($bouncer, $account) = $provider(1, Account::class);
 
         $bouncer->allow('admin')->to('edit-site');
         $bouncer->assign('admin')->to($account);
@@ -50,9 +48,13 @@ class CustomAuthorityTest extends BaseTestCase
         $this->assertTrue($bouncer->cannot('edit-site'));
     }
 
-    public function test_bouncer_can_disallow_abilities_on_roles()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_disallow_abilities_on_roles($provider)
     {
-        $bouncer = $this->bouncer($account = Account::create());
+        list($bouncer, $account) = $provider(1, Account::class);
 
         $bouncer->allow('admin')->to('edit-site');
         $bouncer->disallow('admin')->to('edit-site');
@@ -61,9 +63,13 @@ class CustomAuthorityTest extends BaseTestCase
         $this->assertTrue($bouncer->cannot('edit-site'));
     }
 
-    public function test_bouncer_can_check_user_roles()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_check_roles($provider)
     {
-        $bouncer = $this->bouncer($account = Account::create());
+        list($bouncer, $account) = $provider(1, Account::class);
 
         $this->assertTrue($bouncer->is($account)->notA('moderator'));
         $this->assertTrue($bouncer->is($account)->notAn('editor'));
@@ -80,9 +86,13 @@ class CustomAuthorityTest extends BaseTestCase
         $this->assertFalse($bouncer->is($account)->an('admin'));
     }
 
-    public function test_bouncer_can_check_multiple_user_roles()
+    /**
+     * @test
+     * @dataProvider bouncerProvider
+     */
+    function can_check_multiple_roles($provider)
     {
-        $bouncer = $this->bouncer($account = Account::create());
+        list($bouncer, $account) = $provider(1, Account::class);
 
         $this->assertTrue($bouncer->is($account)->notAn('editor', 'moderator'));
         $this->assertTrue($bouncer->is($account)->notAn('admin', 'moderator'));

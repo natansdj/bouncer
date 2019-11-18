@@ -1,13 +1,18 @@
 <?php
 
+namespace Silber\Bouncer\Tests;
+
 use Silber\Bouncer\Database\Ability;
 use Silber\Bouncer\Console\CleanCommand;
 
 class CleanCommandTest extends BaseTestCase
 {
-    use TestsConsoleCommands;
+    use Concerns\TestsConsoleCommands;
 
-    public function test_with_the_orphaned_flag()
+    /**
+     * @test
+     */
+    function the_orphaned_flag()
     {
         $bouncer = $this->bouncer($user = User::create())->dontCache();
 
@@ -22,7 +27,10 @@ class CleanCommandTest extends BaseTestCase
         $this->assertTrue($bouncer->can('throw-dishes'));
     }
 
-    public function test_with_the_orphaned_flag_with_no_orphaned_abilities()
+    /**
+     * @test
+     */
+    function the_orphaned_flag_with_no_orphaned_abilities()
     {
         $bouncer = $this->bouncer($user = User::create())->dontCache();
 
@@ -35,7 +43,10 @@ class CleanCommandTest extends BaseTestCase
         $this->assertEquals(3, Ability::query()->count());
     }
 
-    public function test_with_the_missing_flag()
+    /**
+     * @test
+     */
+    function the_missing_flag()
     {
         $bouncer = $this->bouncer($user1 = User::create())->dontCache();
 
@@ -64,7 +75,10 @@ class CleanCommandTest extends BaseTestCase
         $this->assertTrue($bouncer->can('update', $account2));
     }
 
-    public function test_with_no_flags()
+    /**
+     * @test
+     */
+    function no_flags()
     {
         $bouncer = $this->bouncer($user1 = User::create())->dontCache();
 
@@ -91,7 +105,7 @@ class CleanCommandTest extends BaseTestCase
     }
 
     /**
-     * Run the seed command, and see the given message in the output.
+     * Run the clean command, and see the given message in the output.
      *
      * @param  array  $parameters
      * @param  string|array  $message

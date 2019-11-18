@@ -1,3 +1,5 @@
+<img src="https://user-images.githubusercontent.com/1403741/39606419-587dbb1e-4f03-11e8-8e54-1bb2f39fb0f5.jpg">
+
 # Bouncer
 
 <p>
@@ -7,6 +9,10 @@
 </p>
 
 Bouncer is an elegant, framework-agnostic approach to managing roles and abilities for any app using Eloquent models.
+
+## Table of Contents
+
+<details><summary>Click to expand</summary><p>
 
 - [Introduction](#introduction)
 - [Installation](#installation)
@@ -24,6 +30,7 @@ Bouncer is an elegant, framework-agnostic approach to managing roles and abiliti
   - [Forbidding an ability](#forbidding-an-ability)
   - [Unforbidding an ability](#unforbidding-an-ability)
   - [Checking a user's roles](#checking-a-users-roles)
+  - [Querying users by their roles](#querying-users-by-their-roles)
   - [Getting all roles for a user](#getting-all-roles-for-a-user)
   - [Getting all abilities for a user](#getting-all-abilities-for-a-user)
   - [Authorizing users](#authorizing-users)
@@ -41,11 +48,14 @@ Bouncer is an elegant, framework-agnostic approach to managing roles and abiliti
 - [FAQ](#faq)
   - [Where do I set up my app's roles and abilities?](#where-do-i-set-up-my-apps-roles-and-abilities)
   - [Can I use a different set of roles & abilities for the public & dashboard sections of my site, respectively?](#can-i-use-a-different-set-of-roles--abilities-for-the-public--dashboard-sections-of-my-site-respectively)
+  - [I'm trying to run the migration, but I'm getting a SQL error that the "specified key was too long"](#im-trying-to-run-the-migration-but-im-getting-a-sql-error-that-the-specified-key-was-too-long)
+  - [I'm trying to run the migration, but I'm getting a SQL error that there is a "Syntax error or access violation: 1064 ... to use near json not null)"](#im-trying-to-run-the-migration-but-im-getting-a-sql-error-that-there-is-a-syntax-error-or-access-violation-1064--to-use-near-json-not-null)
 - [Console commands](#console-commands)
   - [`bouncer:clean`](#bouncerclean)
 - [Cheat sheet](#cheat-sheet)
 - [Alternative](#alternative)
 - [License](#license)
+</p></details>
 
 ## Introduction
 
@@ -69,7 +79,7 @@ Bouncer::assign('admin')->to($user);
 Bouncer::allow($user)->to('edit', $post);
 ```
 
-When you check abilities at the gate, the bouncer will be consulted first. If he sees an ability that has been granted to the current user (whether directly, or through a role) he'll authorize the check.
+When you check abilities at Laravel's gate, the bouncer will automatically be consulted. If he sees an ability that has been granted to the current user (whether directly, or through a role) he'll authorize the check.
 
 ## Installation
 
@@ -78,10 +88,10 @@ When you check abilities at the gate, the bouncer will be consulted first. If he
 Install Bouncer with [composer](https://getcomposer.org/doc/00-intro.md):
 
 ```
-$ composer require silber/bouncer v1.0.0-rc.1
+$ composer require silber/bouncer v1.0.0-rc.6
 ```
 
-> In Laravel 5.5, [service providers and aliases are automatically registered](https://laravel.com/docs/5.5/packages#package-discovery). If you're using Laravel 5.5, skip ahead directly to step 3 (do not pass go, but do collect $200).
+> In Laravel 5.5, [service providers and aliases are automatically registered](https://laravel.com/docs/6.0/packages#package-discovery). If you're using Laravel 5.5, skip ahead directly to step 3 (do not pass go, but do collect $200).
 
 Once the composer installation completes, you can add the service provider and alias the facade. Open `config/app.php`, and make the following changes:
 
@@ -130,14 +140,14 @@ Whenever you use the `Bouncer` facade in your code, remember to add this line to
 use Bouncer;
 ```
 
-For more information about Laravel Facades, refer to [the Laravel documentation](https://laravel.com/docs/5.5/facades).
+For more information about Laravel Facades, refer to [the Laravel documentation](https://laravel.com/docs/6.0/facades).
 
 ### Installing Bouncer in a non-Laravel app
 
 1) Install Bouncer with [composer](https://getcomposer.org/doc/00-intro.md):
 
     ```
-    $ composer require silber/bouncer v1.0.0-rc.1
+    $ composer require silber/bouncer v1.0.0-rc.6
     ```
 
 2) Set up the database with [the Eloquent Capsule component](https://github.com/illuminate/database/blob/master/README.md):
@@ -216,7 +226,7 @@ For more information about Laravel Facades, refer to [the Laravel documentation]
     $bouncer->useUserModel(User::class);
     ```
 
-    For additional configuration, check out [the Congifuration section](#configuration) below.
+    For additional configuration, check out [the Configuration section](#configuration) below.
 
 ### Enabling cache
 
@@ -241,12 +251,12 @@ That's it. Behind the scenes, Bouncer will create both a `Role` model and an `Ab
 If you want to add additional attributes to the role/ability, such as a human-readable title, you can manually create them using the `role` and `ability` methods on the `Bouncer` class:
 
 ```php
-$admin = Bouncer::role()->create([
+$admin = Bouncer::role()->firstOrCreate([
     'name' => 'admin',
     'title' => 'Administrator',
 ]);
 
-$ban = Bouncer::ability()->create([
+$ban = Bouncer::ability()->firstOrCreate([
     'name' => 'ban-users',
     'title' => 'Ban users',
 ]);
@@ -400,7 +410,7 @@ Here are some examples:
     ```
 
 - You may wish to occasionally ban users, removing their permission to all abilities. However, actually removing all of their roles & abilities would mean that when the ban is removed we'll have to figure out what their original roles and abilities were.
-    
+
     Using a forbidden ability means that they can keep all their existing roles and abilities, but still not be authorized for anything. We can accomplish this by creating a special `banned` role, for which we'll forbid everything:
 
     ```php
@@ -485,6 +495,26 @@ $user->isNotA('subscriber');
 $user->isAll('editor', 'moderator');
 ```
 
+### Querying users by their roles
+
+You can query your users by whether they have a given role:
+
+```php
+$users = User::whereIs('admin')->get();
+```
+
+You may also pass in multiple roles, to query for users that have _any_ of the given roles:
+
+```php
+$users = User::whereIs('superadmin', 'admin')->get();
+```
+
+To query for users who have _all_ of the given roles, use the `whereIsAll` method:
+
+```php
+$users = User::whereIsAll('sales', 'marketing')->get();
+```
+
 ### Getting all roles for a user
 
 You can get all roles for a user directly from the user model:
@@ -501,11 +531,17 @@ You can get all abilities for a user directly from the user model:
 $abilities = $user->getAbilities();
 ```
 
-This will return a collection of the user's abilities, including any abilities granted to the user through their roles.
+This will return a collection of the user's allowed abilities, including any abilities granted to the user through their roles.
+
+You can also get a list of abilities that have been _explicitly_ forfidden:
+
+```php
+$forbiddenAbilities = $user->getForbiddenAbilities();
+```
 
 ### Authorizing users
 
-Authorizing users is handled directly at [Laravel's `Gate`](https://laravel.com/docs/5.5/authorization#gates), or on the user model (`$user->can($ability)`).
+Authorizing users is handled directly at [Laravel's `Gate`](https://laravel.com/docs/6.0/authorization#gates), or on the user model (`$user->can($ability)`).
 
 For convenience, the bouncer class provides these passthrough methods:
 
@@ -545,7 +581,7 @@ Whenever you need, you can fully refresh the bouncer's cache:
 Bouncer::refresh();
 ```
 
-> **Note:** fully refreshing the cache for all users uses [cache tags](http://laravel.com/docs/5.5/cache#cache-tags) if they're available. Not all cache drivers support this. Refer to [Laravel's documentation](http://laravel.com/docs/5.5/cache#cache-tags) to see if your driver supports cache tags. If your driver does not support cache tags, calling `refresh` might be a little slow, depending on the amount of users in your system.
+> **Note:** fully refreshing the cache for all users uses [cache tags](https://laravel.com/docs/6.0/cache#cache-tags) if they're available. Not all cache drivers support this. Refer to [Laravel's documentation](https://laravel.com/docs/6.0/cache#cache-tags) to see if your driver supports cache tags. If your driver does not support cache tags, calling `refresh` might be a little slow, depending on the amount of users in your system.
 
 Alternatively, you can refresh the cache only for a specific user:
 
@@ -630,7 +666,7 @@ Bouncer will call the methods on the `Scope` interface at various points in its 
 
 Bouncer ships with sensible defaults, so most of the time there should be no need for any configuration. For finer-grained control, Bouncer can be customized by calling various configuration methods on the `Bouncer` class.
 
-If you only use one or two of these config options, you can stick them into your [main `AppServiceProvider`'s `boot` method](https://github.com/laravel/laravel/blob/bf3785d/app/Providers/AppServiceProvider.php#L14-L17). If they start growing, you may create a separate `BouncerServiceProvider` class in [your `app/Providers` directory](https://github.com/laravel/laravel/tree/bf3785d0bc3cd166119d8ed45c2f869bbc31021c/app/Providers) (remember to register it in [the `providers` config array](https://github.com/laravel/laravel/blob/bf3785d0bc3cd166119d8ed45c2f869bbc31021c/config/app.php#L140-L145)). 
+If you only use one or two of these config options, you can stick them into your [main `AppServiceProvider`'s `boot` method](https://github.com/laravel/laravel/blob/bf3785d/app/Providers/AppServiceProvider.php#L14-L17). If they start growing, you may create a separate `BouncerServiceProvider` class in [your `app/Providers` directory](https://github.com/laravel/laravel/tree/bf3785d0bc3cd166119d8ed45c2f869bbc31021c/app/Providers) (remember to register it in [the `providers` config array](https://github.com/laravel/laravel/blob/bf3785d0bc3cd166119d8ed45c2f869bbc31021c/config/app.php#L140-L145)).
 
 ### Cache
 
@@ -761,7 +797,7 @@ There are some concepts in Bouncer that people keep on asking about, so here's a
 
 ### Where do I set up my app's roles and abilities?
 
-Seeding the initial roles and abilities can be done in a regular [Laravel seeder](https://laravel.com/docs/5.5/seeding) class. Start by creating a specific seeder file for Bouncer:
+Seeding the initial roles and abilities can be done in a regular [Laravel seeder](https://laravel.com/docs/6.0/seeding) class. Start by creating a specific seeder file for Bouncer:
 
 ```
 php artisan make:seeder BouncerSeeder
@@ -801,7 +837,7 @@ php artisan db:seed --class=BouncerSeeder
 
 Bouncer's [`scope`](#the-scope-middleware) can be used to section off different parts of the site, creating a silo for each one of them with its own set of roles & abilities:
 
-1. Create a `ScopeBouncer` [middleware](https://laravel.com/docs/5.5/middleware#defining-middleware) that takes an `$identifier` and sets it as the current scope:
+1. Create a `ScopeBouncer` [middleware](https://laravel.com/docs/6.0/middleware#defining-middleware) that takes an `$identifier` and sets it as the current scope:
 
     ```php
     use Bouncer, Closure;
@@ -840,6 +876,32 @@ Bouncer's [`scope`](#the-scope-middleware) can be used to section off different 
 
 That's it. All roles and abilities will now be separately scoped for each section of your site. To fine-tune the extent of the scope, see [Customizing Bouncer's scope](#customizing-bouncers-scope).
 
+### I'm trying to run the migration, but I'm getting a SQL error that the "specified key was too long"
+
+Starting with Laravel 5.4, the default database character set is now `utf8mb4`. If you're using older versions of some databases (MySQL below 5.7.7, or MariaDB below 10.2.2) with Larvel 5.4+, you'll get a SQL error when trying to create an index on a string column. To fix this, change Laravel's default string length in your `AppServiceProvider`:
+
+```php
+use Illuminate\Support\Facades\Schema;
+
+public function boot()
+{
+    Schema::defaultStringLength(191);
+}
+```
+
+You can read more in [this Laravel News article](https://laravel-news.com/laravel-5-4-key-too-long-error).
+
+## I'm trying to run the migration, but I'm getting a SQL error that there is a "Syntax error or access violation: 1064 ... to use near json not null)"
+
+JSON columns are a relatively new addition to MySQL (5.7.8) and MariaDB (10.0.1). If you're using an older version of these databases, you cannot use JSON columns.
+
+The best solution would be to upgrade your DB. If that's not currently possible, you can change [your published migration file](https://github.com/JosephSilber/bouncer/blob/2e31b84e9c1f6c2b86084df2af9d05299ba73c62/migrations/create_bouncer_tables.php#L25) to use a `text` column instead:
+
+```diff
+- $table->json('options')->nullable();
++ $table->text('options')->nullable();
+```
+
 ## Console commands
 
 ### `bouncer:clean`
@@ -853,7 +915,7 @@ The `bouncer:clean` command deletes unused abilities. Running this command will 
 
     Bouncer::disallow($user)->to('view', Plan::class);
     ```
-    
+
     At this point, the "view plans" ability is not assigned to anyone, so it'll get deleted.
 
     > **Note**: depending on the context of your app, you may not want to delete these. If you let your users manage abilities in your app's UI, you probably _don't_ want to delete unassigned abilities. See below.
@@ -877,7 +939,7 @@ php artisan bouncer:clean --orphaned
 
 If you don't pass it any flags, it will delete both types of unused abilities.
 
-To automatically run this command periodically, add it to [your console kernel's schedule](https://laravel.com/docs/5.5/scheduling#defining-schedules):
+To automatically run this command periodically, add it to [your console kernel's schedule](https://laravel.com/docs/6.0/scheduling#defining-schedules):
 
 ```php
 $schedule->command('bouncer:clean')->weekly();
@@ -914,16 +976,20 @@ Bouncer::forbid($user)->to('delete', $post);
 // And also remove a forbidden ability with the same syntax...
 Bouncer::unforbid($user)->to('delete', $post);
 
-// Re-sync a user's abilities
+// Re-syncing a user's abilities
 Bouncer::sync($user)->abilities($abilities);
 
 // Assigning & retracting roles from users
 Bouncer::assign('admin')->to($user);
 Bouncer::retract('admin')->from($user);
 
-// Re-sync a user's roles
+// Assigning roles to multiple users by ID
+Bouncer::assign('admin')->to([1,2,3]);
+
+// Re-syncing a user's roles
 Bouncer::sync($user)->roles($roles);
 
+// Checking the current user's abilities
 $boolean = Bouncer::can('ban-users');
 $boolean = Bouncer::can('edit', Post::class);
 $boolean = Bouncer::can('delete', $post);
@@ -932,6 +998,7 @@ $boolean = Bouncer::cannot('ban-users');
 $boolean = Bouncer::cannot('edit', Post::class);
 $boolean = Bouncer::cannot('delete', $post);
 
+// Checking a user's roles
 $boolean = Bouncer::is($user)->a('subscriber');
 $boolean = Bouncer::is($user)->an('admin');
 $boolean = Bouncer::is($user)->notA('subscriber');
@@ -965,12 +1032,18 @@ $boolean = $user->isAn('editor', 'moderator');
 $boolean = $user->isAll('moderator', 'editor');
 $boolean = $user->isNotAn('admin', 'moderator');
 
+// Querying users by their roles
+$users = User::whereIs('superadmin')->get();
+$users = User::whereIs('superadmin', 'admin')->get();
+$users = User::whereIsAll('sales', 'marketing')->get();
+
 $abilities = $user->getAbilities();
+$forbidden = $user->getForbiddenAbilities();
 ```
 
 ## Alternative
 
-Among the bajillion packages that [Spatie](https://spatie.be) has so graciously bestowed upon the community, you'll find the excellent [laravel-permission](https://github.com/spatie/laravel-permission) package. Like Bouncer, it nicely integrates with Laravel's built-in gate and permission checks, but has a different set of design choices when it comes to syntax, DB structure & features. [Povilas Korop](https://twitter.com/@povilaskorop) did an excellent job comparing the two [in an article on Laravel News](https://laravel-news.com/two-best-roles-permissions-packages).
+Among the bajillion packages that [Spatie](https://spatie.be) has so graciously bestowed upon the community, you'll find the excellent [laravel-permission](https://github.com/spatie/laravel-permission) package. Like Bouncer, it nicely integrates with Laravel's built-in gate and permission checks, but has a different set of design choices when it comes to syntax, DB structure & features.
 
 ## License
 
