@@ -219,6 +219,6 @@ class BouncerServiceProvider extends ServiceProvider
     {
         $config = $this->app->config['app'];
 
-        return array_get($config, 'bouncer_inherit', false);
+        return Arr::get($config, 'bouncer_inherit', false);
     }
 }
