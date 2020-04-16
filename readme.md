@@ -3,7 +3,7 @@
 # Bouncer
 
 <p>
-<a href="https://travis-ci.org/JosephSilber/bouncer"><img src="https://travis-ci.org/JosephSilber/bouncer.svg" alt="Build Status"></a>
+<a href="https://github.com/JosephSilber/bouncer/actions"><img src="https://github.com/JosephSilber/bouncer/workflows/Tests/badge.svg" alt="Build Status"></a>
 <a href="https://packagist.org/packages/silber/bouncer"><img src="https://poser.pugx.org/silber/bouncer/d/total.svg" alt="Total Downloads"></a>
 <a href="https://github.com/JosephSilber/bouncer/blob/master/LICENSE.txt"><img src="https://poser.pugx.org/silber/bouncer/license.svg" alt="License"></a>
 </p>
@@ -83,33 +83,19 @@ When you check abilities at Laravel's gate, the bouncer will automatically be co
 
 ## Installation
 
+> **Note**: Bouncer requires PHP 7.2+ and Laravel/Eloquent 6.0+
+> 
+> If you're not up to date, use [Bouncer RC6](https://github.com/JosephSilber/bouncer/tree/v1.0.0-rc.6). It supports all the way back to PHP 5.5 & Laravel 5.1, and has no known bugs.
+
 ### Installing Bouncer in a Laravel app
 
-Install Bouncer with [composer](https://getcomposer.org/doc/00-intro.md):
+1) Install Bouncer with [composer](https://getcomposer.org/doc/00-intro.md):
 
 ```
-$ composer require silber/bouncer v1.0.0-rc.6
+$ composer require silber/bouncer v1.0.0-rc.8
 ```
 
-> In Laravel 5.5, [service providers and aliases are automatically registered](https://laravel.com/docs/6.0/packages#package-discovery). If you're using Laravel 5.5, skip ahead directly to step 3 (do not pass go, but do collect $200).
-
-Once the composer installation completes, you can add the service provider and alias the facade. Open `config/app.php`, and make the following changes:
-
-1) Add a new item to the `providers` array:
-
-    ```php
-    Silber\Bouncer\BouncerServiceProvider::class,
-    ```
-
-2) Add a new item to the `aliases` array:
-
-    ```php
-    'Bouncer' => Silber\Bouncer\BouncerFacade::class,
-    ```
-
-    This part is optional. If you don't want to use the facade, you can skip step 2.
-
-3) Add Bouncer's trait to your user model:
+2) Add Bouncer's trait to your user model:
 
     ```php
     use Silber\Bouncer\Database\HasRolesAndAbilities;
@@ -120,13 +106,13 @@ Once the composer installation completes, you can add the service provider and a
     }
     ```
 
-4) Now, to run Bouncer's migrations, first publish the migrations into your app's `migrations` directory, by running the following command:
+3) Now, to run Bouncer's migrations, first publish the migrations into your app's `migrations` directory, by running the following command:
 
     ```
     php artisan vendor:publish --tag="bouncer.migrations"
     ```
 
-5) Finally, run the migrations:
+4) Finally, run the migrations:
 
     ```
     php artisan migrate
@@ -140,14 +126,14 @@ Whenever you use the `Bouncer` facade in your code, remember to add this line to
 use Bouncer;
 ```
 
-For more information about Laravel Facades, refer to [the Laravel documentation](https://laravel.com/docs/6.0/facades).
+For more information about Laravel Facades, refer to [the Laravel documentation](https://laravel.com/docs/7.x/facades).
 
 ### Installing Bouncer in a non-Laravel app
 
 1) Install Bouncer with [composer](https://getcomposer.org/doc/00-intro.md):
 
     ```
-    $ composer require silber/bouncer v1.0.0-rc.6
+    $ composer require silber/bouncer v1.0.0-rc.8
     ```
 
 2) Set up the database with [the Eloquent Capsule component](https://github.com/illuminate/database/blob/master/README.md):
@@ -541,17 +527,25 @@ $forbiddenAbilities = $user->getForbiddenAbilities();
 
 ### Authorizing users
 
-Authorizing users is handled directly at [Laravel's `Gate`](https://laravel.com/docs/6.0/authorization#gates), or on the user model (`$user->can($ability)`).
+Authorizing users is handled directly at [Laravel's `Gate`](https://laravel.com/docs/7.x/authorization#gates), or on the user model (`$user->can($ability)`).
 
-For convenience, the bouncer class provides these passthrough methods:
+For convenience, the `Bouncer` class provides these passthrough methods:
 
 ```php
 Bouncer::can($ability);
+Bouncer::can($ability, $model);
+
+Bouncer::canAny($abilities);
+Bouncer::canAny($abilities, $model);
+
 Bouncer::cannot($ability);
+Bouncer::cannot($ability, $model);
+
 Bouncer::authorize($ability);
+Bouncer::authorize($ability, $model);
 ```
 
-These call directly into the `Gate` class.
+These call directly into their equivalent methods on the `Gate` class.
 
 ### Blade directives
 
@@ -581,7 +575,7 @@ Whenever you need, you can fully refresh the bouncer's cache:
 Bouncer::refresh();
 ```
 
-> **Note:** fully refreshing the cache for all users uses [cache tags](https://laravel.com/docs/6.0/cache#cache-tags) if they're available. Not all cache drivers support this. Refer to [Laravel's documentation](https://laravel.com/docs/6.0/cache#cache-tags) to see if your driver supports cache tags. If your driver does not support cache tags, calling `refresh` might be a little slow, depending on the amount of users in your system.
+> **Note:** fully refreshing the cache for all users uses [cache tags](https://laravel.com/docs/7.x/cache#cache-tags) if they're available. Not all cache drivers support this. Refer to [Laravel's documentation](https://laravel.com/docs/7.x/cache#cache-tags) to see if your driver supports cache tags. If your driver does not support cache tags, calling `refresh` might be a little slow, depending on the amount of users in your system.
 
 Alternatively, you can refresh the cache only for a specific user:
 
@@ -797,7 +791,7 @@ There are some concepts in Bouncer that people keep on asking about, so here's a
 
 ### Where do I set up my app's roles and abilities?
 
-Seeding the initial roles and abilities can be done in a regular [Laravel seeder](https://laravel.com/docs/6.0/seeding) class. Start by creating a specific seeder file for Bouncer:
+Seeding the initial roles and abilities can be done in a regular [Laravel seeder](https://laravel.com/docs/7.x/seeding) class. Start by creating a specific seeder file for Bouncer:
 
 ```
 php artisan make:seeder BouncerSeeder
@@ -837,7 +831,7 @@ php artisan db:seed --class=BouncerSeeder
 
 Bouncer's [`scope`](#the-scope-middleware) can be used to section off different parts of the site, creating a silo for each one of them with its own set of roles & abilities:
 
-1. Create a `ScopeBouncer` [middleware](https://laravel.com/docs/6.0/middleware#defining-middleware) that takes an `$identifier` and sets it as the current scope:
+1. Create a `ScopeBouncer` [middleware](https://laravel.com/docs/7.x/middleware#defining-middleware) that takes an `$identifier` and sets it as the current scope:
 
     ```php
     use Bouncer, Closure;
@@ -939,7 +933,7 @@ php artisan bouncer:clean --orphaned
 
 If you don't pass it any flags, it will delete both types of unused abilities.
 
-To automatically run this command periodically, add it to [your console kernel's schedule](https://laravel.com/docs/6.0/scheduling#defining-schedules):
+To automatically run this command periodically, add it to [your console kernel's schedule](https://laravel.com/docs/7.x/scheduling#defining-schedules):
 
 ```php
 $schedule->command('bouncer:clean')->weekly();
@@ -984,7 +978,7 @@ Bouncer::assign('admin')->to($user);
 Bouncer::retract('admin')->from($user);
 
 // Assigning roles to multiple users by ID
-Bouncer::assign('admin')->to([1,2,3]);
+Bouncer::assign('admin')->to([1, 2, 3]);
 
 // Re-syncing a user's roles
 Bouncer::sync($user)->roles($roles);

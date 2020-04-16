@@ -11,13 +11,11 @@ class Roles
      * Constrain the given query by the provided role.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $role
+     * @param  string  ...$roles
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function constrainWhereIs($query, $role)
+    public function constrainWhereIs($query, ...$roles)
     {
-        $roles = array_slice(func_get_args(), 1);
-
         return $query->whereHas('roles', function ($query) use ($roles) {
             $query->whereIn('name', $roles);
         });
@@ -27,13 +25,11 @@ class Roles
      * Constrain the given query by all provided roles.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $role
+     * @param  string  ...$roles
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function constrainWhereIsAll($query, $role)
+    public function constrainWhereIsAll($query, ...$roles)
     {
-        $roles = array_slice(func_get_args(), 1);
-
         return $query->whereHas('roles', function ($query) use ($roles) {
             $query->whereIn('name', $roles);
         }, '=', count($roles));
@@ -43,13 +39,11 @@ class Roles
      * Constrain the given query by the provided role.
      *
      * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  string  $role
+     * @param  string  ...$roles
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function constrainWhereIsNot($query, $role)
+    public function constrainWhereIsNot($query, ...$roles)
     {
-        $roles = array_slice(func_get_args(), 1);
-
         return $query->whereDoesntHave('roles', function ($query) use ($roles) {
             $query->whereIn('name', $roles);
         });
@@ -72,11 +66,10 @@ class Roles
             $key    = "{$table}.{$model->getKeyName()}";
             $pivot  = Models::table('assigned_roles');
             $roles  = Models::table('roles');
-            $prefix = Models::prefix();
 
             $query->from($table)
                   ->join($pivot, $key, '=', $pivot.'.entity_id')
-                  ->whereRaw("{$prefix}{$pivot}.role_id = {$prefix}{$roles}.id")
+                  ->whereColumn("{$pivot}.role_id", "{$roles}.id")
                   ->where("{$pivot}.entity_type", $model->getMorphClass())
                   ->whereIn($key, $keys);
 

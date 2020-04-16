@@ -4,6 +4,7 @@ namespace Silber\Bouncer\Database\Concerns;
 
 use Illuminate\Container\Container;
 
+use Silber\Bouncer\Helpers;
 use Silber\Bouncer\Database\Models;
 use Silber\Bouncer\Database\Ability;
 use Silber\Bouncer\Contracts\Clipboard;
@@ -22,7 +23,9 @@ trait HasAbilities
     public static function bootHasAbilities()
     {
         static::deleted(function ($model) {
-            $model->abilities()->detach();
+            if (! Helpers::isSoftDeleting($model)) {
+                $model->abilities()->detach();
+            }
         });
     }
 
@@ -49,7 +52,9 @@ trait HasAbilities
      */
     public function getAbilities()
     {
-        return $this->getClipboardInstance()->getAbilities($this);
+        return Container::getInstance()
+            ->make(Clipboard::class)
+            ->getAbilities($this);
     }
 
     /**
@@ -59,7 +64,9 @@ trait HasAbilities
      */
     public function getForbiddenAbilities()
     {
-        return $this->getClipboardInstance()->getAbilities($this, false);
+        return Container::getInstance()
+            ->make(Clipboard::class)
+            ->getAbilities($this, false);
     }
 
     /**
@@ -132,17 +139,5 @@ trait HasAbilities
         (new UnforbidsAbilities($this))->to($ability, $model);
 
         return $this;
-    }
-
-    /**
-     * Get an instance of the bouncer's clipboard.
-     *
-     * @return \Silber\Bouncer\Contracts\Clipboard
-     */
-    protected function getClipboardInstance()
-    {
-        $container = Container::getInstance() ?: new Container;
-
-        return $container->make(Clipboard::class);
     }
 }

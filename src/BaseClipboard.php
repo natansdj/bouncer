@@ -5,6 +5,7 @@ namespace Silber\Bouncer;
 use Silber\Bouncer\Database\Models;
 use Silber\Bouncer\Database\Queries\Abilities;
 
+use InvalidArgumentException;
 use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Contracts\Auth\Access\Gate;
@@ -81,13 +82,6 @@ abstract class BaseClipboard implements Contracts\Clipboard
         $roles = $authority->roles()->get([
             'name', Models::role()->getQualifiedKeyName()
         ])->pluck('name', Models::role()->getKeyName());
-
-        // In Laravel 5.1, "pluck" returns an Eloquent collection,
-        // so we call "toBase" on it. In 5.2, "pluck" returns a
-        // base instance, so there is no "toBase" available.
-        if (method_exists($roles, 'toBase')) {
-            $roles = $roles->toBase();
-        }
 
         return ['ids' => $roles, 'names' => $roles->flip()];
     }

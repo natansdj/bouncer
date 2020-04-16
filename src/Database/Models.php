@@ -14,28 +14,21 @@ use Silber\Bouncer\Contracts\Scope as ScopeContract;
 class Models
 {
     /**
-     * The prefix for the tables.
-     *
-     * @var string
-     */
-    protected static $prefix = '';
-
-    /**
-     * Map for the bouncer's models.
+     * Map of bouncer's models.
      *
      * @var array
      */
     protected static $models = [];
 
     /**
-     * Holds the map of ownership for models.
+     * Map of ownership for models.
      *
      * @var array
      */
     protected static $ownership = [];
 
     /**
-     * Map for the bouncer's tables.
+     * Map of bouncer's tables.
      *
      * @var array
      */
@@ -103,17 +96,6 @@ class Models
     }
 
     /**
-     * Set the prefix for the tables.
-     *
-     * @param  string  $prefix
-     * @return void
-     */
-    public static function setPrefix($prefix)
-    {
-        static::$prefix = $prefix;
-    }
-
-    /**
      * @param bool $inherit
      */
     public static function setInherit($inherit)
@@ -134,16 +116,6 @@ class Models
         }
 
         return $table;
-    }
-
-    /**
-     * Get the prefix for the tables.
-     *
-     * @return string
-     */
-    public static function prefix()
-    {
-        return static::$prefix;
     }
 
     public static function inherit()
