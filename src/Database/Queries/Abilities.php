@@ -64,7 +64,7 @@ class Abilities
             $query->where(function ($query) use ($roles, $authority, $allowed) {
                 $query->whereExists(static::getAuthorityRoleConstraint($authority));
 
-                if ($allowed && Models::inherit()) {
+                if ($allowed && Helpers::enableInherit()) {
                     $this->addRoleInheritCondition($query, $authority, $roles);
                 }
             });

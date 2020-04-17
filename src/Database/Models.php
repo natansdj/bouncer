@@ -48,8 +48,6 @@ class Models
      */
     protected static $scope;
 
-    protected static $inherit = false;
-
     /**
      * Set the model to be used for abilities.
      *
@@ -114,14 +112,6 @@ class Models
     }
 
     /**
-     * @param bool $inherit
-     */
-    public static function setInherit($inherit)
-    {
-        static::$inherit = $inherit;
-    }
-
-    /**
      * Get a custom table name mapping for the given table.
      *
      * @param  string  $table
@@ -144,11 +134,6 @@ class Models
     public static function prefix()
     {
         return static::$prefix;
-    }
-
-    public static function inherit()
-    {
-        return static::$inherit;
     }
 
     /**

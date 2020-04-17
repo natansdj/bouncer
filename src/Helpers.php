@@ -200,4 +200,10 @@ class Helpers
         return new Collection($partitions);
     }
 
+    public static function enableInherit()
+    {
+        $config = \App::make('config');
+
+        return $config->get('app.bouncer_inherit', true);
+    }
 }
